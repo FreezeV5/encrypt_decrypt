@@ -42,7 +42,7 @@ section.on{display:block;animation:in .3s ease}
 .drop b{display:block;font-weight:600;word-break:break-all}
 .drop span{color:var(--mut);font-size:.9rem}
 label.l{display:block;font-size:.85rem;font-weight:500;color:var(--mut);margin:0 4px 6px}
-input[type=text]{width:100%;font:inherit;font-size:1rem;color:var(--fg);background:var(--field);border:1px solid transparent;border-radius:12px;padding:12px 14px;margin-bottom:16px;outline:0;transition:border-color .2s,box-shadow .2s;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9rem}
+input[type=text]{width:100%;font:inherit;font-size:1rem;color:var(--fg);background:var(--field);border:1px solid transparent;border-radius:12px;padding:12px 14px;margin-bottom:16px;outline:0;transition:border-color .2s,box-shadow .2s;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:1.1rem;letter-spacing:.06em;text-align:center}
 input[type=text]:focus{border-color:var(--ac);box-shadow:0 0 0 4px color-mix(in srgb,var(--ac) 22%,transparent)}
 .btn{display:block;width:100%;background:var(--ac);color:var(--acfg);border:0;border-radius:980px;padding:13px 20px;font:inherit;font-weight:500;cursor:pointer;transition:background .2s,transform .1s}
 .btn:hover{background:var(--achv)}.btn:active{transform:scale(.985)}
@@ -50,7 +50,7 @@ input[type=text]:focus{border-color:var(--ac);box-shadow:0 0 0 4px color-mix(in 
 .btn.sec:hover{background:var(--seg)}
 .res{margin-top:20px;padding-top:20px;border-top:1px solid var(--bd)}
 .res[hidden]{display:none}
-.key{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9rem;word-break:break-all;background:var(--field);border-radius:12px;padding:14px;margin:0 0 12px;user-select:all}
+.key{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:1.3rem;font-weight:600;letter-spacing:.04em;text-align:center;background:var(--field);border-radius:12px;padding:16px 14px;margin:0 0 12px;user-select:all}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 #msg{text-align:center;min-height:1.5em;margin-top:18px;font-size:.95rem;color:var(--mut)}
 #msg.ok{color:var(--ok)}#msg.err{color:var(--err)}
@@ -92,7 +92,7 @@ input[type=text]:focus{border-color:var(--ac);box-shadow:0 0 0 4px color-mix(in 
     <b id="n2">Wybierz plik</b>
     <span id="h2"></span>
   </label>
-  <input type="text" id="kin" placeholder="Klucz" aria-label="Klucz" autocomplete="off" autocapitalize="off" spellcheck="false">
+  <input type="text" id="kin" placeholder="Klucz" aria-label="Klucz" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
   <button class="btn" id="dec">Odszyfruj</button>
   <div class="res" id="out2" hidden>
     <button class="btn" id="dl2">Pobierz plik</button>
@@ -105,8 +105,23 @@ input[type=text]:focus{border-color:var(--ac);box-shadow:0 0 0 4px color-mix(in 
 <script>
 const $=id=>document.getElementById(id);
 const te=new TextEncoder(),td=new TextDecoder();
-const b64u=b=>btoa(String.fromCharCode(...b)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-const unb64u=s=>{s=s.trim().replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return Uint8Array.from(atob(s),c=>c.charCodeAt(0))};
+const ALPHA='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+function newToken(){
+  let t='';
+  const n=ALPHA.length,max=256-256%n;
+  while(t.length<16){
+    for(const b of crypto.getRandomValues(new Uint8Array(32))){
+      if(b<max&&t.length<16)t+=ALPHA[b%n];
+    }
+  }
+  return t;
+}
+const norm=s=>s.replace(/[^A-Za-z0-9]/g,'');
+const pretty=t=>t.match(/.{4}/g).join('-');
+async function derive(token,salt,usage){
+  const base=await crypto.subtle.importKey('raw',te.encode(token),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:600000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,[usage]);
+}
 const say=(t,c)=>{$('msg').className=c||'';$('msg').textContent=t||''};
 const busy=(id,on,t)=>{$(id).disabled=on;$(id).textContent=on?t:{enc:'Zaszyfruj',dec:'Odszyfruj'}[id]};
 const size=n=>n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(1)+' MB';
@@ -148,15 +163,16 @@ $('enc').onclick=async()=>{
     const plain=new Uint8Array(2+nm.length+data.length);
     plain[0]=nm.length>>8;plain[1]=nm.length&255;
     plain.set(nm,2);plain.set(data,2+nm.length);
-    const raw=crypto.getRandomValues(new Uint8Array(32));
-    const key=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['encrypt']);
+    const token=newToken();
+    const salt=crypto.getRandomValues(new Uint8Array(16));
     const iv=crypto.getRandomValues(new Uint8Array(12));
+    const key=await derive(token,salt,'encrypt');
     const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,plain));
-    const out=new Uint8Array(12+ct.length);
-    out.set(iv);out.set(ct,12);
+    const out=new Uint8Array(28+ct.length);
+    out.set(salt);out.set(iv,16);out.set(ct,28);
     blob1=new Blob([out],{type:'application/octet-stream'});
     name1=f.name+'.enc';
-    $('key').textContent=b64u(raw);
+    $('key').textContent=pretty(token);
     $('out1').hidden=false;
   }catch(e){say('Nie udało się zaszyfrować pliku.','err')}
   finally{busy('enc',false)}
@@ -176,11 +192,9 @@ $('dec').onclick=async()=>{
   try{
     busy('dec',true,'Odszyfrowywanie…');say('');
     await new Promise(r=>setTimeout(r,30));
-    const raw=unb64u($('kin').value);
-    if(raw.length!==32)throw new Error('zły format klucza');
     const buf=new Uint8Array(await f.arrayBuffer());
-    const key=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['decrypt']);
-    const plain=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:buf.slice(0,12)},key,buf.slice(12)));
+    const key=await derive(norm($('kin').value),buf.slice(0,16),'decrypt');
+    const plain=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:buf.slice(16,28)},key,buf.slice(28)));
     const n=(plain[0]<<8)|plain[1];
     name2=td.decode(plain.slice(2,2+n));
     blob2=new Blob([plain.slice(2+n)],{type:'application/octet-stream'});
