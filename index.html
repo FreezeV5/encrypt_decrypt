@@ -2,74 +2,114 @@
 <html lang="pl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Szyfrator plików</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%235ac8fa'/%3E%3Cstop offset='.55' stop-color='%230a84ff'/%3E%3Cstop offset='1' stop-color='%235e5ce6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cg fill='none' stroke='white' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='18' y='29' width='28' height='18' rx='5'/%3E%3Cpath d='M24 29v-6a8 8 0 0 1 16 0v6'/%3E%3C/g%3E%3C/svg%3E">
+<meta name="theme-color" content="#0a84ff">
 <style>
-:root{--bg:#fff;--fg:#1a1a1a;--card:#f4f4f6;--bd:#d6d6dc;--ac:#2f5fd0;--acfg:#fff;--ok:#1a7f37;--err:#c62828}
-@media (prefers-color-scheme:dark){:root{--bg:#16171a;--fg:#e8e8ea;--card:#212328;--bd:#3a3d45;--ac:#6b93ee;--acfg:#10131a;--ok:#4cc26b;--err:#ef6b6b}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif}
-main{max-width:640px;margin:0 auto;padding:24px 16px}
-h1{font-size:1.5rem;margin:0 0 4px}
-p.sub{margin:0 0 20px;opacity:.7}
-.tabs{display:flex;gap:8px;margin-bottom:16px}
-.tabs button{flex:1}
-section{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;display:none}
-section.on{display:block}
-button,input{font:inherit}
-button{background:var(--ac);color:var(--acfg);border:0;border-radius:8px;padding:10px 14px;cursor:pointer}
-button.sec{background:transparent;color:var(--fg);border:1px solid var(--bd)}
-button.sec.on{border-color:var(--ac);color:var(--ac)}
-input[type=text],input[type=file]{width:100%;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg);margin:6px 0 12px}
-code.key{display:block;word-break:break-all;padding:10px;border:1px dashed var(--bd);border-radius:8px;background:var(--bg);margin:6px 0 10px}
-.row{display:flex;gap:8px;flex-wrap:wrap}
-#msg{margin-top:12px;min-height:1.5em}
-.ok{color:var(--ok)}.err{color:var(--err)}
-small{opacity:.7;display:block;margin-top:14px}
+:root{
+  --bg1:#f5f5f7;--bg2:#e8ecf4;--fg:#1d1d1f;--mut:#6e6e73;
+  --card:rgba(255,255,255,.72);--bd:rgba(0,0,0,.08);--field:rgba(0,0,0,.04);
+  --seg:rgba(118,118,128,.12);--segon:#fff;--ac:#0071e3;--achv:#0077ed;--acfg:#fff;
+  --ok:#248a3d;--err:#d70015;--sh:0 8px 40px rgba(0,0,0,.08)
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg1:#000;--bg2:#15161a;--fg:#f5f5f7;--mut:#98989d;
+  --card:rgba(30,30,32,.72);--bd:rgba(255,255,255,.1);--field:rgba(255,255,255,.07);
+  --seg:rgba(118,118,128,.24);--segon:#636366;--ac:#0a84ff;--achv:#409cff;--acfg:#fff;
+  --ok:#30d158;--err:#ff453a;--sh:0 8px 40px rgba(0,0,0,.5)
+}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{min-height:100%;background:linear-gradient(160deg,var(--bg1),var(--bg2)) fixed}
+body{margin:0;color:var(--fg);font:17px/1.47 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;
+  padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+main{max-width:560px;margin:0 auto;padding:56px 20px 40px}
+header{text-align:center;margin-bottom:28px}
+.logo{width:64px;height:64px;margin:0 auto 16px;border-radius:15px;background:linear-gradient(145deg,#5ac8fa,#0a84ff 55%,#5e5ce6);display:grid;place-items:center;box-shadow:0 6px 20px rgba(10,132,255,.35)}
+.logo svg{width:32px;height:32px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+h1{font-size:2.1rem;line-height:1.1;font-weight:700;letter-spacing:-.025em;margin:0}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--seg);border-radius:10px;padding:2px;margin-bottom:18px}
+.seg button{background:none;border:0;color:var(--fg);padding:7px 10px;border-radius:8px;font:inherit;font-size:.95rem;font-weight:500;cursor:pointer;transition:background .2s,box-shadow .2s}
+.seg button.on{background:var(--segon);box-shadow:0 1px 4px rgba(0,0,0,.18),0 0 0 .5px rgba(0,0,0,.04)}
+section{display:none;background:var(--card);-webkit-backdrop-filter:saturate(180%) blur(30px);backdrop-filter:saturate(180%) blur(30px);
+  border:1px solid var(--bd);border-radius:22px;padding:22px;box-shadow:var(--sh)}
+section.on{display:block;animation:in .3s ease}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.drop{display:block;border:1.5px dashed var(--bd);border-radius:16px;padding:28px 16px;text-align:center;cursor:pointer;background:var(--field);transition:border-color .2s,background .2s;margin-bottom:16px}
+.drop:hover,.drop.over{border-color:var(--ac)}
+.drop input{display:none}
+.drop svg{width:30px;height:30px;stroke:var(--ac);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;margin-bottom:6px}
+.drop b{display:block;font-weight:600;word-break:break-all}
+.drop span{color:var(--mut);font-size:.9rem}
+label.l{display:block;font-size:.85rem;font-weight:500;color:var(--mut);margin:0 4px 6px}
+input[type=text]{width:100%;font:inherit;font-size:1rem;color:var(--fg);background:var(--field);border:1px solid transparent;border-radius:12px;padding:12px 14px;margin-bottom:16px;outline:0;transition:border-color .2s,box-shadow .2s;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9rem}
+input[type=text]:focus{border-color:var(--ac);box-shadow:0 0 0 4px color-mix(in srgb,var(--ac) 22%,transparent)}
+.btn{display:block;width:100%;background:var(--ac);color:var(--acfg);border:0;border-radius:980px;padding:13px 20px;font:inherit;font-weight:500;cursor:pointer;transition:background .2s,transform .1s}
+.btn:hover{background:var(--achv)}.btn:active{transform:scale(.985)}
+.btn.sec{background:var(--field);color:var(--ac)}
+.btn.sec:hover{background:var(--seg)}
+.res{margin-top:20px;padding-top:20px;border-top:1px solid var(--bd)}
+.res[hidden]{display:none}
+.key{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9rem;word-break:break-all;background:var(--field);border-radius:12px;padding:14px;margin:0 0 12px;user-select:all}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#msg{text-align:center;min-height:1.5em;margin-top:18px;font-size:.95rem;color:var(--mut)}
+#msg.ok{color:var(--ok)}#msg.err{color:var(--err)}
 </style>
 </head>
 <body>
 <main>
-<h1>Szyfrator plików</h1>
-<p class="sub">AES-256-GCM, wszystko dzieje się w przeglądarce. Plik nigdzie nie jest wysyłany.</p>
+<header>
+  <div class="logo"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+  <h1>Szyfrator plików</h1>
+</header>
 
-<div class="tabs">
-<button class="sec on" id="t1">Szyfruj</button>
-<button class="sec" id="t2">Odszyfruj</button>
+<div class="seg">
+  <button class="on" id="t1">Szyfruj</button>
+  <button id="t2">Odszyfruj</button>
 </div>
 
 <section id="s1" class="on">
-<label>Plik do zaszyfrowania</label>
-<input type="file" id="fin">
-<button id="enc">Zaszyfruj</button>
-<div id="out1" hidden>
-<p>Klucz (zapisz go, bez niego nie odzyskasz pliku):</p>
-<code class="key" id="key"></code>
-<div class="row">
-<button class="sec" id="cp">Kopiuj klucz</button>
-<button id="dl">Pobierz plik .enc</button>
-</div>
-</div>
+  <label class="drop" id="d1">
+    <input type="file" id="fin">
+    <svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
+    <b id="n1">Wybierz plik</b>
+    <span id="h1"></span>
+  </label>
+  <button class="btn" id="enc">Zaszyfruj</button>
+  <div class="res" id="out1" hidden>
+    <p class="key" id="key"></p>
+    <div class="row">
+      <button class="btn sec" id="cp">Kopiuj klucz</button>
+      <button class="btn" id="dl">Pobierz plik</button>
+    </div>
+  </div>
 </section>
 
 <section id="s2">
-<label>Zaszyfrowany plik (.enc)</label>
-<input type="file" id="fenc">
-<label>Klucz</label>
-<input type="text" id="kin" placeholder="Wklej klucz" autocomplete="off" spellcheck="false">
-<button id="dec">Odszyfruj</button>
-<div id="out2" hidden style="margin-top:12px"><button id="dl2">Pobierz odszyfrowany plik</button></div>
+  <label class="drop" id="d2">
+    <input type="file" id="fenc">
+    <svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
+    <b id="n2">Wybierz plik</b>
+    <span id="h2"></span>
+  </label>
+  <input type="text" id="kin" placeholder="Klucz" aria-label="Klucz" autocomplete="off" autocapitalize="off" spellcheck="false">
+  <button class="btn" id="dec">Odszyfruj</button>
+  <div class="res" id="out2" hidden>
+    <button class="btn" id="dl2">Pobierz plik</button>
+  </div>
 </section>
 
 <div id="msg"></div>
-<small>Klucz przekazuj innym kanałem niż plik. Kto ma klucz i plik, ten ma dostęp do zawartości.</small>
 </main>
+
 <script>
 const $=id=>document.getElementById(id);
 const te=new TextEncoder(),td=new TextDecoder();
 const b64u=b=>btoa(String.fromCharCode(...b)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const unb64u=s=>{s=s.trim().replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return Uint8Array.from(atob(s),c=>c.charCodeAt(0))};
-const say=(t,c)=>{$('msg').className=c||'';$('msg').textContent=t};
+const say=(t,c)=>{$('msg').className=c||'';$('msg').textContent=t||''};
+const busy=(id,on,t)=>{$(id).disabled=on;$(id).textContent=on?t:{enc:'Zaszyfruj',dec:'Odszyfruj'}[id]};
+const size=n=>n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(1)+' MB';
 let blob1,name1,blob2,name2;
 
 function tab(n){
@@ -78,6 +118,17 @@ function tab(n){
 }
 $('t1').onclick=()=>tab(1);
 $('t2').onclick=()=>tab(2);
+
+function wire(inp,zone,nm,hint,reset){
+  const show=()=>{const f=$(inp).files[0];if(f){$(nm).textContent=f.name;$(hint).textContent=size(f.size)}reset()};
+  $(inp).onchange=show;
+  const z=$(zone);
+  ['dragenter','dragover'].forEach(e=>z.addEventListener(e,ev=>{ev.preventDefault();z.classList.add('over')}));
+  ['dragleave','drop'].forEach(e=>z.addEventListener(e,ev=>{ev.preventDefault();z.classList.remove('over')}));
+  z.addEventListener('drop',ev=>{if(ev.dataTransfer.files.length){$(inp).files=ev.dataTransfer.files;show()}});
+}
+wire('fin','d1','n1','h1',()=>{$('out1').hidden=true;say('')});
+wire('fenc','d2','n2','h2',()=>{$('out2').hidden=true;say('')});
 
 function save(blob,name){
   const a=document.createElement('a');
@@ -90,7 +141,8 @@ $('enc').onclick=async()=>{
   const f=$('fin').files[0];
   if(!f)return say('Wybierz plik.','err');
   try{
-    say('Szyfruję…');
+    busy('enc',true,'Szyfrowanie…');say('');
+    await new Promise(r=>setTimeout(r,30));
     const data=new Uint8Array(await f.arrayBuffer());
     const nm=te.encode(f.name);
     const plain=new Uint8Array(2+nm.length+data.length);
@@ -106,20 +158,24 @@ $('enc').onclick=async()=>{
     name1=f.name+'.enc';
     $('key').textContent=b64u(raw);
     $('out1').hidden=false;
-    say('Gotowe.','ok');
-  }catch(e){say('Błąd szyfrowania: '+e.message,'err')}
+  }catch(e){say('Nie udało się zaszyfrować pliku.','err')}
+  finally{busy('enc',false)}
 };
 $('dl').onclick=()=>save(blob1,name1);
 $('cp').onclick=async()=>{
-  try{await navigator.clipboard.writeText($('key').textContent);say('Klucz skopiowany.','ok')}
-  catch{say('Nie udało się skopiować, zaznacz klucz ręcznie.','err')}
+  try{
+    await navigator.clipboard.writeText($('key').textContent);
+    $('cp').textContent='Skopiowano';
+    setTimeout(()=>$('cp').textContent='Kopiuj klucz',1800);
+  }catch{say('Nie udało się skopiować klucza.','err')}
 };
 
 $('dec').onclick=async()=>{
   const f=$('fenc').files[0];
-  if(!f)return say('Wybierz plik .enc.','err');
+  if(!f)return say('Wybierz plik.','err');
   try{
-    say('Odszyfrowuję…');
+    busy('dec',true,'Odszyfrowywanie…');say('');
+    await new Promise(r=>setTimeout(r,30));
     const raw=unb64u($('kin').value);
     if(raw.length!==32)throw new Error('zły format klucza');
     const buf=new Uint8Array(await f.arrayBuffer());
@@ -129,11 +185,10 @@ $('dec').onclick=async()=>{
     name2=td.decode(plain.slice(2,2+n));
     blob2=new Blob([plain.slice(2+n)],{type:'application/octet-stream'});
     $('out2').hidden=false;
-    say('Odszyfrowano: '+name2,'ok');
   }catch(e){
     $('out2').hidden=true;
-    say('Nie udało się odszyfrować. Zły klucz albo uszkodzony plik.','err');
-  }
+    say('Nieprawidłowy klucz lub uszkodzony plik.','err');
+  }finally{busy('dec',false)}
 };
 $('dl2').onclick=()=>save(blob2,name2);
 </script>
