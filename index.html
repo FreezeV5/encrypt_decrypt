@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Szyfrator plików</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--card:#f4f4f6;--bd:#d6d6dc;--ac:#2f5fd0;--acfg:#fff;--ok:#1a7f37;--err:#c62828}
+@media (prefers-color-scheme:dark){:root{--bg:#16171a;--fg:#e8e8ea;--card:#212328;--bd:#3a3d45;--ac:#6b93ee;--acfg:#10131a;--ok:#4cc26b;--err:#ef6b6b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif}
+main{max-width:640px;margin:0 auto;padding:24px 16px}
+h1{font-size:1.5rem;margin:0 0 4px}
+p.sub{margin:0 0 20px;opacity:.7}
+.tabs{display:flex;gap:8px;margin-bottom:16px}
+.tabs button{flex:1}
+section{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;display:none}
+section.on{display:block}
+button,input{font:inherit}
+button{background:var(--ac);color:var(--acfg);border:0;border-radius:8px;padding:10px 14px;cursor:pointer}
+button.sec{background:transparent;color:var(--fg);border:1px solid var(--bd)}
+button.sec.on{border-color:var(--ac);color:var(--ac)}
+input[type=text],input[type=file]{width:100%;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg);margin:6px 0 12px}
+code.key{display:block;word-break:break-all;padding:10px;border:1px dashed var(--bd);border-radius:8px;background:var(--bg);margin:6px 0 10px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+#msg{margin-top:12px;min-height:1.5em}
+.ok{color:var(--ok)}.err{color:var(--err)}
+small{opacity:.7;display:block;margin-top:14px}
+</style>
+</head>
+<body>
+<main>
+<h1>Szyfrator plików</h1>
+<p class="sub">AES-256-GCM, wszystko dzieje się w przeglądarce. Plik nigdzie nie jest wysyłany.</p>
+
+<div class="tabs">
+<button class="sec on" id="t1">Szyfruj</button>
+<button class="sec" id="t2">Odszyfruj</button>
+</div>
+
+<section id="s1" class="on">
+<label>Plik do zaszyfrowania</label>
+<input type="file" id="fin">
+<button id="enc">Zaszyfruj</button>
+<div id="out1" hidden>
+<p>Klucz (zapisz go, bez niego nie odzyskasz pliku):</p>
+<code class="key" id="key"></code>
+<div class="row">
+<button class="sec" id="cp">Kopiuj klucz</button>
+<button id="dl">Pobierz plik .enc</button>
+</div>
+</div>
+</section>
+
+<section id="s2">
+<label>Zaszyfrowany plik (.enc)</label>
+<input type="file" id="fenc">
+<label>Klucz</label>
+<input type="text" id="kin" placeholder="Wklej klucz" autocomplete="off" spellcheck="false">
+<button id="dec">Odszyfruj</button>
+<div id="out2" hidden style="margin-top:12px"><button id="dl2">Pobierz odszyfrowany plik</button></div>
+</section>
+
+<div id="msg"></div>
+<small>Klucz przekazuj innym kanałem niż plik. Kto ma klucz i plik, ten ma dostęp do zawartości.</small>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const te=new TextEncoder(),td=new TextDecoder();
+const b64u=b=>btoa(String.fromCharCode(...b)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const unb64u=s=>{s=s.trim().replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return Uint8Array.from(atob(s),c=>c.charCodeAt(0))};
+const say=(t,c)=>{$('msg').className=c||'';$('msg').textContent=t};
+let blob1,name1,blob2,name2;
+
+function tab(n){
+  [1,2].forEach(i=>{$('s'+i).classList.toggle('on',i===n);$('t'+i).classList.toggle('on',i===n)});
+  say('');
+}
+$('t1').onclick=()=>tab(1);
+$('t2').onclick=()=>tab(2);
+
+function save(blob,name){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),10000);
+}
+
+$('enc').onclick=async()=>{
+  const f=$('fin').files[0];
+  if(!f)return say('Wybierz plik.','err');
+  try{
+    say('Szyfruję…');
+    const data=new Uint8Array(await f.arrayBuffer());
+    const nm=te.encode(f.name);
+    const plain=new Uint8Array(2+nm.length+data.length);
+    plain[0]=nm.length>>8;plain[1]=nm.length&255;
+    plain.set(nm,2);plain.set(data,2+nm.length);
+    const raw=crypto.getRandomValues(new Uint8Array(32));
+    const key=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['encrypt']);
+    const iv=crypto.getRandomValues(new Uint8Array(12));
+    const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,plain));
+    const out=new Uint8Array(12+ct.length);
+    out.set(iv);out.set(ct,12);
+    blob1=new Blob([out],{type:'application/octet-stream'});
+    name1=f.name+'.enc';
+    $('key').textContent=b64u(raw);
+    $('out1').hidden=false;
+    say('Gotowe.','ok');
+  }catch(e){say('Błąd szyfrowania: '+e.message,'err')}
+};
+$('dl').onclick=()=>save(blob1,name1);
+$('cp').onclick=async()=>{
+  try{await navigator.clipboard.writeText($('key').textContent);say('Klucz skopiowany.','ok')}
+  catch{say('Nie udało się skopiować, zaznacz klucz ręcznie.','err')}
+};
+
+$('dec').onclick=async()=>{
+  const f=$('fenc').files[0];
+  if(!f)return say('Wybierz plik .enc.','err');
+  try{
+    say('Odszyfrowuję…');
+    const raw=unb64u($('kin').value);
+    if(raw.length!==32)throw new Error('zły format klucza');
+    const buf=new Uint8Array(await f.arrayBuffer());
+    const key=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['decrypt']);
+    const plain=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:buf.slice(0,12)},key,buf.slice(12)));
+    const n=(plain[0]<<8)|plain[1];
+    name2=td.decode(plain.slice(2,2+n));
+    blob2=new Blob([plain.slice(2+n)],{type:'application/octet-stream'});
+    $('out2').hidden=false;
+    say('Odszyfrowano: '+name2,'ok');
+  }catch(e){
+    $('out2').hidden=true;
+    say('Nie udało się odszyfrować. Zły klucz albo uszkodzony plik.','err');
+  }
+};
+$('dl2').onclick=()=>save(blob2,name2);
+</script>
+</body>
+</html>
